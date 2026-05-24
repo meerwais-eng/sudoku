@@ -1,0 +1,132 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.sudoku.premium'
+    // Use variables from variables.gradle for consistency
+    compileSdk rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        applicationId "com.sudoku.premium"
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // =====================================================
+    // RELEASE SIGNING CONFIGURATION
+    // =====================================================
+    // Keystore path/passwords are read from gradle.properties
+    // (which can be overridden via environment variables or CLI flags).
+    // Generate the keystore first: scripts/generate-keystore.bat
+    signingConfigs {
+        release {
+            // Allow override from environment variables or gradle.properties
+            // Note: local variable names must differ from DSL property names to avoid
+            // Groovy ambiguity (e.g. "keyAlias keyAlias" tries to call String as method)
+            def ksPath = System.getenv("RELEASE_KEYSTORE_PATH") ?: project.properties["RELEASE_KEYSTORE_PATH"] ?: "release.keystore"
+            def ksPass = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: project.properties["RELEASE_KEYSTORE_PASSWORD"] ?: ""
+            def ksAlias = System.getenv("RELEASE_KEY_ALIAS") ?: project.properties["RELEASE_KEY_ALIAS"] ?: "sudoku"
+            def ksKeyPass = System.getenv("RELEASE_KEY_PASSWORD") ?: project.properties["RELEASE_KEY_PASSWORD"] ?: ""
+
+            // Only apply signing config if keystore exists and passwords are set
+            // This prevents build failures during development when no keystore is present
+            if (file(ksPath).exists() && ksPass.length() > 0) {
+                storeFile file(ksPath)
+                storePassword ksPass
+                keyAlias ksAlias
+                keyPassword ksKeyPass
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Sign with the release keystore when available
+            signingConfig signingConfigs.release
+
+            // Enable code optimization
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            // Production build flags
+            debuggable false
+            jniDebuggable false
+            pseudoLocalesEnabled false
+        }
+        debug {
+            minifyEnabled false
+            debuggable true
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    // Bundle the Next.js static export as assets
+    sourceSets {
+        main {
+            assets.srcDirs = ['src/main/assets']
+        }
+    }
+
+    // Enable build features
+    buildFeatures {
+        viewBinding false
+    }
+
+    // Lint options for production
+    lint {
+        abortOnError false
+        checkReleaseBuilds true
+        disable 'MissingTranslation'
+    }
+
+    // Bundle configuration for Play Store delivery
+    bundle {
+        language {
+            // Enable language split — only include languages the user needs
+            enableSplit = true
+        }
+        density {
+            // Enable density split — only include resources for the device's density
+            enableSplit = true
+        }
+        abi {
+            // Enable ABI split — only include native libs for the device's CPU
+            enableSplit = true
+        }
+    }
+}
+
+dependencies {
+    // Core Android
+    implementation "androidx.core:core-ktx:${rootProject.ext.androidxCoreVersion}"
+    implementation "androidx.appcompat:appcompat:${rootProject.ext.androidxAppCompatVersion}"
+    implementation "androidx.webkit:webkit:${rootProject.ext.androidxWebkitVersion}"
+    implementation "androidx.activity:activity:${rootProject.ext.androidxActivityVersion}"
+    implementation "androidx.fragment:fragment:${rootProject.ext.androidxFragmentVersion}"
+    implementation 'com.google.android.material:material:1.12.0'
+
+    // Capacitor
+    implementation project(':capacitor-android')
+    implementation project(':capacitor-splash-screen')
+    implementation project(':capacitor-status-bar')
+
+    // Testing
+    testImplementation "junit:junit:${rootProject.ext.junitVersion}"
+    androidTestImplementation "androidx.test.ext:junit:${rootProject.ext.androidxJunitVersion}"
+    androidTestImplementation "androidx.test.espresso:espresso-core:${rootProject.ext.androidxEspressoCoreVersion}"
+}

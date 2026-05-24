@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="100%" height="100%" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+
+  <!-- Solid Black Background -->
+  <rect width="400" height="400" fill="#000000"/>
+
+  <!-- Your Logo (Full size, centered, no white padding) -->  	<image 
+	href="icon-512.png" 
+	width="400" 
+	height="400" 
+	x="0" 
+   	 y="0"
+	preserveAspectRatio="xMidYMid meet"/>
+</svg>

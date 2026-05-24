@@ -1,0 +1,42 @@
+{
+  "applicationId": "com.sudoku.premium",
+  "host": "sudoku.example.com",
+  "name": "Sudoku - Premium Puzzle Game",
+  "shortName": "Sudoku",
+  "description": "A beautiful, modern Sudoku puzzle game with glassmorphic design, achievements, and statistics.",
+  "themeColor": "#1a1a2e",
+  "backgroundColor": "#1a1a2e",
+  "startUrl": "/",
+  "iconUrl": "/icon-512x512.png",
+  "maskableIconUrl": "/icon-512x512.png",
+  "splashScreenColor": "#1a1a2e",
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "sudoku"
+  },
+  "additionalTrustedOrigins": [],
+  "enableNotifications": false,
+  "playServices": {
+    "enabled": false
+  },
+  "orientation": "portrait",
+  "fullScope": true,
+  "scope": "/",
+  "useBrowserOnChromeOS": false,
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "minSdkVersion": 21,
+  "targetSdkVersion": 34,
+  "fallbackType": "custom_tabs",
+  "chromeOptions": {
+    "enableSiteSettingsShortcut": false
+  },
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "paymentDelegation": {
+      "enabled": false
+    }
+  }
+}

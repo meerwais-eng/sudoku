@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Main app theme -->
+    <style name="Theme.Sudoku" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/sudoku_background</item>
+        <item name="colorPrimaryDark">@color/sudoku_status_bar</item>
+        <item name="colorAccent">@color/sudoku_background</item>
+        <item name="android:windowBackground">@color/sudoku_background</item>
+        <item name="android:statusBarColor">@color/sudoku_status_bar</item>
+        <item name="android:navigationBarColor">@color/sudoku_background</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+    <!-- Splash screen theme (used by Capacitor SplashScreen plugin) -->
+    <style name="Theme.Sudoku.Splash" parent="Theme.Sudoku">
+        <item name="android:windowBackground">@drawable/splash_screen</item>
+    </style>
+</resources>

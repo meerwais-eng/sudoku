@@ -1,0 +1,29 @@
+{
+	"appId": "com.sudoku.premium",
+	"appName": "Sudoku",
+	"webDir": "out",
+	"server": {
+		"androidScheme": "https"
+	},
+	"plugins": {
+		"StatusBar": {
+			"style": "DARK",
+			"backgroundColor": "#0d1117"
+		},
+		"SplashScreen": {
+			"launchShowDuration": 1500,
+			"launchAutoHide": true,
+			"backgroundColor": "#0d1117",
+			"showSpinner": false,
+			"androidScaleType": "CENTER_CROP"
+		},
+		"Keyboard": {
+			"resize": "none",
+			"resizeOnFullScreen": true
+		}
+	},
+	"android": {
+		"allowMixedContent": false,
+		"webContentsDebuggingEnabled": false
+	}
+}

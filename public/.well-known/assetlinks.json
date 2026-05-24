@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.sudoku.premium",
+      "sha256_cert_fingerprints": [
+        "PLACEHOLDER:RUN_GENERATE_KEY_SCRIPT_BELOW"
+      ]
+    }
+  }
+]

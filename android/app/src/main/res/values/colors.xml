@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sudoku_background">#1a1a2e</color>
+    <color name="sudoku_status_bar">#1a1a2e</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>
