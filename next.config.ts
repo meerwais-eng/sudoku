@@ -13,15 +13,6 @@ const nextConfig: NextConfig = {
       },
   trailingSlash: isStaticExport ? true : false,
   reactStrictMode: true,
-  poweredByHeader: false,
-  compress: true,
-  productionBrowserSourceMaps: false,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: false,
-  },
 };
 
 export default nextConfig;
