@@ -58,3 +58,14 @@ gradle-*-bin.zip
 
 # Database files
 db/*.db
+
+# Deployment config duplication (Vercel & GitHub Pages)
+.temp/
+
+# GitHub Pages artifact from local builds
+out/
+_notes/
+*_copy.*
+
+# Temporary helper scripts
+_read_files.js

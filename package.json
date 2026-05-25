@@ -7,6 +7,8 @@
     "build": "next build && node -e \"const fs=require('fs');if(fs.existsSync('.next/standalone')){fs.cpSync('.next/static','.next/standalone/.next/static',{force:true});fs.cpSync('public','.next/standalone/public',{force:true})}\"",
     "build:pwa": "cross-env BUILD_TARGET=pwa next build",
     "build:android": "cross-env BUILD_TARGET=android next build && npx cap sync android",
+    "build:pages": "cross-env NEXT_STATIC_EXPORT=true next build",
+    "export:pages": "npm run build:pages && npx serve out",
     "generate:icons": "node scripts/generate-pwa-icons.mjs",
     "generate:android-icons": "node scripts/generate-android-icons.mjs",
     "generate:keystore": "scripts\\generate-keystore.bat",
@@ -14,7 +16,8 @@
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",
     "cap:copy": "npx cap copy android",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "preview": "npx serve out"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
