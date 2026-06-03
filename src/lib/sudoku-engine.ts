@@ -22,13 +22,17 @@ export interface UndoAction {
 
 export type BoardState = CellData[][];
 
+// Pre-allocated arrays for performance
+const EMPTY_NOTES = Array(9).fill(false) as boolean[];
+const CACHED_NUMS_ARRAY = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
 /** Create an empty 9x9 board */
 export function createEmptyBoard(): BoardState {
   return Array.from({ length: 9 }, () =>
     Array.from({ length: 9 }, () => ({
       value: 0,
       solution: 0,
-      notes: Array(9).fill(false) as boolean[],
+      notes: [...EMPTY_NOTES],
       isGiven: false,
       isError: false,
     }))
@@ -66,26 +70,29 @@ function isValidPlacement(grid: number[][], row: number, col: number, num: numbe
   return true;
 }
 
-/** Shuffle an array in place (Fisher-Yates) */
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+/** Shuffle an array in place (Fisher-Yates) - optimized version */
+function shuffleInPlace<T>(arr: T[], rng?: () => number): void {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = rng ? Math.floor(rng() * (i + 1)) : Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return a;
 }
 
-/** Generate a complete valid Sudoku grid using backtracking */
+/** Generate a complete valid Sudoku grid using backtracking - optimized */
 export function generateSolvedGrid(): number[][] {
   const grid: number[][] = Array.from({ length: 9 }, () => Array(9).fill(0));
+  const nums = [...CACHED_NUMS_ARRAY];
 
   function solve(pos: number): boolean {
     if (pos === 81) return true;
     const row = Math.floor(pos / 9);
     const col = pos % 9;
 
-    const nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    // Reuse nums array to avoid allocations
+    nums[0] = 1; nums[1] = 2; nums[2] = 3; nums[3] = 4; nums[4] = 5;
+    nums[5] = 6; nums[6] = 7; nums[7] = 8; nums[8] = 9;
+    shuffleInPlace(nums);
+
     for (const num of nums) {
       if (isValidPlacement(grid, row, col, num)) {
         grid[row][col] = num;
@@ -182,11 +189,8 @@ export function generatePuzzle(difficulty: Difficulty, seed?: number, cluesToRem
     }
   }
 
-  // Shuffle positions
-  for (let i = positions.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [positions[i], positions[j]] = [positions[j], positions[i]];
-  }
+  // Shuffle positions using optimized in-place shuffle
+  shuffleInPlace(positions, rng);
 
   let removed = 0;
   for (const [row, col] of positions) {
@@ -209,7 +213,7 @@ export function generatePuzzle(difficulty: Difficulty, seed?: number, cluesToRem
     row.map((val, c) => ({
       value: val,
       solution: solvedGrid[r][c],
-      notes: Array(9).fill(false) as boolean[],
+      notes: [...EMPTY_NOTES],
       isGiven: val !== 0,
       isError: false,
     }))
@@ -321,11 +325,11 @@ export function autoFillNotes(board: BoardState): BoardState {
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
       if (newBoard[r][c].value !== 0) {
-        newBoard[r][c].notes = Array(9).fill(false);
+        newBoard[r][c].notes = [...EMPTY_NOTES];
         continue;
       }
 
-      const notes = Array(9).fill(false);
+      const notes = [...EMPTY_NOTES];
       for (let num = 1; num <= 9; num++) {
         const conflicts = findConflicts(board, r, c, num);
         if (conflicts.length === 0) {
@@ -346,7 +350,7 @@ export function solveBoard(board: BoardState): BoardState {
     for (let c = 0; c < 9; c++) {
       newBoard[r][c].value = newBoard[r][c].solution;
       newBoard[r][c].isError = false;
-      newBoard[r][c].notes = Array(9).fill(false);
+      newBoard[r][c].notes = [...EMPTY_NOTES];
     }
   }
   return newBoard;
