@@ -5,8 +5,10 @@ import android.content.Intent
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.view.View
 import android.webkit.JavascriptInterface
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 
 /**
  * JavaScript interface that bridges the WebView with native Android functionality.
@@ -119,6 +121,53 @@ class WebAppInterface(private val context: Context) {
     fun exitApp() {
         if (context is android.app.Activity) {
             context.finish()
+        }
+    }
+
+    /**
+     * Show a native Android exit confirmation dialog.
+     * Called from JavaScript when the user presses back on the home screen.
+     * Displays "Do you want to exit the app?" with Yes/No options.
+     *
+     * Button visibility fix: On many Android devices (especially with dark themes
+     * or custom OEM skins), the AlertDialog's default button text color can match
+     * the dialog background, rendering the Yes/No buttons invisible. Using
+     * setOnShowListener to explicitly set text colors, sizes, padding, and visibility
+     * guarantees both buttons are always visible and clickable.
+     */
+    @JavascriptInterface
+    fun requestExitDialog() {
+        if (context is android.app.Activity) {
+            (context as android.app.Activity).runOnUiThread {
+                val builder = AlertDialog.Builder(context, androidx.appcompat.R.style.Theme_AppCompat_Light_Dialog_Alert)
+                    .setTitle("Exit App")
+                    .setMessage("Do you want to exit the app?")
+                    .setPositiveButton("Yes") { _, _ ->
+                        (context as android.app.Activity).finish()
+                    }
+                    .setNegativeButton("No", null)
+                    .setCancelable(true)
+                val dialog = builder.create()
+                dialog.setOnShowListener {
+                    val yesButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                    yesButton.setTextColor(android.graphics.Color.parseColor("#E53935"))
+                    yesButton.setTextSize(16f)
+                    yesButton.setAllCaps(false)
+                    yesButton.isClickable = true
+                    yesButton.visibility = View.VISIBLE
+                    val padding = 24
+                    yesButton.setPadding(padding, padding, padding, padding)
+                    val noButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+                    noButton.setTextColor(android.graphics.Color.parseColor("#1976D2"))
+                    noButton.setTextSize(16f)
+                    noButton.setAllCaps(false)
+                    noButton.isClickable = true
+                    noButton.visibility = View.VISIBLE
+                    noButton.setPadding(padding, padding, padding, padding)
+                }
+                dialog.setCanceledOnTouchOutside(false)
+                dialog.show()
+            }
         }
     }
 

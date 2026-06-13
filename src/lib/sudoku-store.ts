@@ -10,6 +10,8 @@ import {
   generatePuzzle,
   getDailySeed,
   updateErrors,
+  updateErrorsMutate,
+  updateErrorsIncremental,
   isPuzzleSolved,
   findConflicts,
   getHint,
@@ -76,6 +78,11 @@ export interface SudokuState {
   // Navigation
   currentScreen: Screen;
   setScreen: (screen: Screen) => void;
+  screenHistory: Screen[];
+  goBack: () => void;
+  showExitConfirm: boolean;
+  dismissExitConfirm: () => void;
+  confirmExit: () => void;
 
   // Game State
   board: BoardState;
@@ -178,10 +185,50 @@ export interface SudokuState {
 
 // ========== STORE ==========
 
+// The store instance will be exposed on window.__sudokuStore after creation
+// (see bottom of this file) so the native Android back-press handler can
+// access currentScreen and goBack() via window.__sudokuStore.
+
 export const useSudokuStore = create<SudokuState>((set, get) => ({
   // Navigation
   currentScreen: 'home',
-  setScreen: (screen) => set({ currentScreen: screen }),
+  screenHistory: [] as Screen[],
+  showExitConfirm: false,
+  setScreen: (screen) => {
+    const state = get();
+    if (state.currentScreen !== screen) {
+      set({ currentScreen: screen, screenHistory: [...state.screenHistory, state.currentScreen] });
+    }
+  },
+  goBack: () => {
+    const state = get();
+    if (state.screenHistory.length > 0) {
+      const previousScreen = state.screenHistory[state.screenHistory.length - 1];
+      set({
+        currentScreen: previousScreen,
+        screenHistory: state.screenHistory.slice(0, -1),
+      });
+    } else if (state.currentScreen === 'home') {
+      set({ showExitConfirm: true });
+    } else {
+      set({ currentScreen: 'home', screenHistory: [] });
+    }
+  },
+  dismissExitConfirm: () => set({ showExitConfirm: false }),
+  confirmExit: () => {
+    set({ showExitConfirm: false });
+    try {
+      if ((window as any).Capacitor?.Plugins?.App) {
+        (window as any).Capacitor.Plugins.App.exitApp();
+      } else if (window.close) {
+        window.close();
+      } else {
+        window.location.href = 'about:blank';
+      }
+    } catch {
+      window.location.href = 'about:blank';
+    }
+  },
 
   // Game State
   board: [],
@@ -402,10 +449,11 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
     requestAnimationFrame(() => {
       const seed = isDaily ? getDailySeed(new Date()) : undefined;
       const board = generatePuzzle(difficulty, seed);
-      const errorBoard = updateErrors(board);
+      // Update errors in-place (freshly generated board, no need to clone again)
+      updateErrorsMutate(board);
 
       set({
-        board: errorBoard,
+        board,
         difficulty,
         selectedCell: null,
         notesMode: false,
@@ -430,6 +478,7 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
         quickGameDifficulty: null,
         showLevelComplete: false,
         showLevelFail: false,
+        screenHistory: [...get().screenHistory, get().currentScreen],
       });
 
       // Clear any previous saved game
@@ -445,10 +494,11 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
     requestAnimationFrame(() => {
       const config = getLevelConfig(level);
       const board = generatePuzzle(config.difficulty, undefined, config.cluesToRemove);
-      const errorBoard = updateErrors(board);
+      // Update errors in-place (freshly generated board, no need to clone again)
+      updateErrorsMutate(board);
 
       set({
-        board: errorBoard,
+        board,
         difficulty: config.difficulty,
         selectedCell: null,
         notesMode: false,
@@ -474,6 +524,7 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
         showLevelComplete: false,
         showLevelFail: false,
         settings: { ...get().settings, mistakeLimit: 5 },
+        screenHistory: [...get().screenHistory, get().currentScreen],
       });
 
       // Update player progress current level
@@ -505,10 +556,11 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
 
     requestAnimationFrame(() => {
       const board = generatePuzzle(difficulty);
-      const errorBoard = updateErrors(board);
+      // Update errors in-place (freshly generated board, no need to clone again)
+      updateErrorsMutate(board);
 
       set({
-        board: errorBoard,
+        board,
         difficulty,
         selectedCell: null,
         notesMode: false,
@@ -533,6 +585,7 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
         quickGameDifficulty: difficulty,
         showLevelComplete: false,
         showLevelFail: false,
+        screenHistory: [...get().screenHistory, get().currentScreen],
       });
 
       // Clear any previous saved game
@@ -574,10 +627,11 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
       }
     }
 
-    const errorBoard = updateErrors(newBoard);
+    // Update errors in-place (board is already a fresh clone)
+    updateErrorsMutate(newBoard);
 
     set({
-      board: errorBoard,
+      board: newBoard,
       mistakes: 0,
       isGameOver: false,
       isRunning: true,
@@ -683,13 +737,19 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
     const state = get();
     if (state.isComplete || state.isPaused || state.isGameOver) return;
 
-    if (state.settings.soundEnabled) playSelectSound();
-
     const cellValue = state.board[row]?.[col]?.value ?? 0;
     set({
       selectedCell: [row, col],
       selectedNumber: cellValue > 0 ? cellValue : null,
     });
+
+    // Defer sound playback to after render, preventing an AudioContext
+    // node creation from blocking the main thread during touch. On mobile
+    // WebViews, synchronous AudioContext operations during a touch handler
+    // can add 50-100ms of input latency, perceived as tap lag.
+    if (state.settings.soundEnabled) {
+      requestAnimationFrame(() => playSelectSound());
+    }
   },
 
   // Enter a number
@@ -724,6 +784,12 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
         ...newBoard[row][col],
         notes: newNotes,
       };
+
+      // Notes-only change: no need to recompute errors (notes don't affect conflicts)
+      set({
+        board: newBoard,
+        undoStack: newUndoStack,
+      });
     } else {
       // Check if this is a mistake
       const isCorrect = num === cell.solution;
@@ -768,15 +834,15 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
         }
       }
 
-      // Update errors
-      const errorBoard = updateErrors(newBoard);
+      // Update errors incrementally (board is already a fresh clone, no double-clone needed)
+      updateErrorsIncremental(newBoard, row, col);
 
       // Check game over (mistake limit reached)
       const mistakeLimit = state.settings.mistakeLimit;
       const isMistakeLimitReached = newMistakes >= mistakeLimit;
 
       // Check win
-      const isComplete = isPuzzleSolved(errorBoard);
+      const isComplete = isPuzzleSolved(newBoard);
 
       // Play win/game over sounds
       if (isComplete && state.settings.soundEnabled) {
@@ -787,7 +853,7 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
 
       // Check if a number is fully completed (all 9 placed)
       if (isCorrect && state.settings.soundEnabled) {
-        const afterCounts = countNumbers(errorBoard);
+        const afterCounts = countNumbers(newBoard);
         if (afterCounts[num] === 9) {
           playNumberCompleteSound();
         }
@@ -822,7 +888,7 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
         savePlayerProgress(newProgress);
 
         set({
-          board: errorBoard,
+          board: newBoard,
           mistakes: newMistakes,
           undoStack: newUndoStack,
           score: finalScore,
@@ -870,7 +936,7 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
         savePlayerProgress(newProgress);
 
         set({
-          board: errorBoard,
+          board: newBoard,
           mistakes: newMistakes,
           undoStack: newUndoStack,
           score: finalScore,
@@ -915,7 +981,7 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
 
       // Classic game or level game still in progress
       set({
-        board: errorBoard,
+        board: newBoard,
         mistakes: newMistakes,
         undoStack: newUndoStack,
         score: finalScore,
@@ -965,14 +1031,7 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
         // Clear saved game
         clearSavedGame();
       }
-      return;
     }
-
-    const errorBoard = updateErrors(newBoard);
-    set({
-      board: errorBoard,
-      undoStack: newUndoStack,
-    });
   },
 
   // Erase cell
@@ -1005,9 +1064,10 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
       isError: false,
     };
 
-    const errorBoard = updateErrors(newBoard);
+    // Update errors in-place (board is already a fresh clone)
+    updateErrorsMutate(newBoard);
     set({
-      board: errorBoard,
+      board: newBoard,
       undoStack: newUndoStack,
       selectedNumber: null,
     });
@@ -1060,8 +1120,9 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
       isGiven: true, // Mark as given so it can't be changed
     };
 
-    const errorBoard = updateErrors(newBoard);
-    const isComplete = isPuzzleSolved(errorBoard);
+    // Update errors in-place (board is already a fresh clone)
+    updateErrorsMutate(newBoard);
+    const isComplete = isPuzzleSolved(newBoard);
 
     if (isComplete && state.settings.soundEnabled) playWinSound();
 
@@ -1092,7 +1153,7 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
       savePlayerProgress(levelCompleteProgress);
 
       set({
-        board: errorBoard,
+        board: newBoard,
         hintsUsed: state.hintsUsed + 1,
         undoStack: newUndoStack,
         selectedCell: [hint.row, hint.col],
@@ -1133,7 +1194,7 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
     }
 
     set({
-      board: errorBoard,
+      board: newBoard,
       hintsUsed: state.hintsUsed + 1,
       undoStack: newUndoStack,
       selectedCell: [hint.row, hint.col],
@@ -1190,11 +1251,12 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
       notes: [...action.prevNotes],
     };
 
-    const errorBoard = updateErrors(newBoard);
+    // Update errors in-place (board is already a fresh clone)
+    updateErrorsMutate(newBoard);
     const newUndoStack = state.undoStack.slice(0, -1);
 
     set({
-      board: errorBoard,
+      board: newBoard,
       undoStack: newUndoStack,
       selectedCell: [action.row, action.col],
     });
@@ -1371,3 +1433,10 @@ export const useSudokuStore = create<SudokuState>((set, get) => ({
     return get().playerProgress.hints;
   },
 }));
+
+// Expose the store instance globally for the native Android back-press handler.
+// window.__sudokuHandleBackPress() (injected by SudokuWebViewClient.onPageFinished)
+// reads window.__sudokuStore to access currentScreen and goBack().
+if (typeof window !== 'undefined') {
+  (window as any).__sudokuStore = useSudokuStore;
+}

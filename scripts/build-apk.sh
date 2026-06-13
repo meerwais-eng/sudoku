@@ -1,13 +1,13 @@
 #!/bin/bash
 # =====================================================
-# Sudoku AAB Build Script (Unix/macOS)
-# Produces a signed Android App Bundle
+# Sudoku APK Build Script (Unix/macOS)
+# Produces a signed Android Universal APK
 # =====================================================
 set -e
 
 echo "============================================"
-echo " Sudoku AAB Build Script (Unix/macOS)"
-echo " Produces a signed Android App Bundle"
+echo " Sudoku APK Build Script (Unix/macOS)"
+echo " Produces a signed Android APK"
 echo "============================================"
 echo ""
 
@@ -70,15 +70,15 @@ cd ..
 echo ""
 
 # =====================================================
-# Step 5: Build the signed AAB
+# Step 5: Build the signed APK
 # =====================================================
-echo "[5/5] Building signed Android App Bundle (AAB)..."
+echo "[5/5] Building signed Android APK..."
 cd android
-if ./gradlew bundleRelease; then
+if ./gradlew assembleRelease; then
     cd ..
 else
     echo ""
-    echo "ERROR: AAB build failed."
+    echo "ERROR: APK build failed."
     echo "Common issues:"
     echo "  - Keystore passwords not set in gradle.properties"
     echo "  - JAVA_HOME not pointing to JDK 17+"
@@ -92,17 +92,20 @@ echo "============================================"
 echo "  BUILD SUCCESSFUL!"
 echo "============================================"
 echo ""
-echo "Signed AAB location:"
-echo "  android/app/build/outputs/bundle/release/app-release.aab"
+
+echo "Release APK location:"
+echo "  android/app/build/outputs/apk/release/app-release.apk"
 echo ""
 
-if [ -f "android/app/build/outputs/bundle/release/app-release.aab" ]; then
-    FILE_SIZE=$(stat -f%z "android/app/build/outputs/bundle/release/app-release.aab" 2>/dev/null || stat -c%s "android/app/build/outputs/bundle/release/app-release.aab" 2>/dev/null || echo "unknown")
+if [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
+    FILE_SIZE=$(stat -f%z "android/app/build/outputs/apk/release/app-release.apk" 2>/dev/null || stat -c%s "android/app/build/outputs/apk/release/app-release.apk" 2>/dev/null || echo "unknown")
     echo "File size: $FILE_SIZE bytes"
     echo ""
-    echo "To upload to Google Play Store:"
-    echo "  1. Go to https://play.google.com/console"
-    echo "  2. Navigate to your app > Release > Production"
-    echo "  3. Upload: android/app/build/outputs/bundle/release/app-release.aab"
+    echo "To install on a connected device:"
+    echo "  adb install android/app/build/outputs/apk/release/app-release.apk"
     echo ""
 fi
+
+echo "To open in Android Studio for further customization:"
+echo "  Open the 'android' folder in Android Studio"
+echo ""

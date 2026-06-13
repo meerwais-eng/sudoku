@@ -12,8 +12,8 @@ android {
         applicationId "com.sudoku.premium"
         minSdk rootProject.ext.minSdkVersion
         targetSdk rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        versionCode 2
+        versionName "0.2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -67,12 +67,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
     }
 
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = '21'
     }
 
     // Bundle the Next.js static export as assets
@@ -108,6 +108,41 @@ android {
             // Enable ABI split — only include native libs for the device's CPU
             enableSplit = true
         }
+    }
+}
+
+// AAPT2 excludes directories starting with _ from the APK.
+// Next.js uses _next/ for static assets (JS, CSS, fonts), which gets filtered out.
+// This task copies _next/ → next/ before the asset merge, so the content is included.
+task renameNextAssets {
+    description 'Renames assets/public/_next/ to next/ to avoid AAPT2 _ prefix exclusion'
+    doLast {
+        def publicDir = file('src/main/assets/public')
+        def nextDir = new File(publicDir, 'next')
+        def underscoreNextDir = new File(publicDir, '_next')
+
+        // Always delete existing next/ to ensure fresh content (no stale files)
+        if (nextDir.exists()) {
+            nextDir.deleteDir()
+        }
+
+        // Copy _next/ → next/ if _next/ exists
+        if (underscoreNextDir.exists()) {
+            copy {
+                from underscoreNextDir
+                into nextDir
+            }
+            logger.lifecycle("renameNextAssets: Copied _next/ → next/ in assets/public/")
+        } else {
+            logger.warn("renameNextAssets: _next/ not found in assets/public/, skipping")
+        }
+    }
+}
+
+// Ensure renameNextAssets runs before all merge assets tasks
+afterEvaluate {
+    tasks.matching { it.name.startsWith('merge') && it.name.endsWith('Assets') }.all {
+        dependsOn renameNextAssets
     }
 }
 

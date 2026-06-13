@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Explicitly allow the WebViewAssetLoader domain.
+         WebViewAssetLoader serves local assets via https://appassets.android.platform.net/
+         which is treated as a secure origin by the WebView. This config ensures the
+         domain is trusted for HTTPS connections even though it's a virtual domain. -->
+    <domain-config>
+        <domain includeSubdomains="true">appassets.android.platform.net</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Allow Supabase API domain for authentication and data -->
+    <domain-config>
+        <domain includeSubdomains="true">supabase.co</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Base config: trust system certificates for all other HTTPS domains -->
+    <base-config>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useSudokuStore } from '@/lib/sudoku-store';
 import { formatTime, saveGame } from '@/lib/sudoku-storage';
 import { startBackgroundMusic, stopBackgroundMusic, initAudio } from '@/lib/sudoku-sounds';
+import { showFooterBanner, hideFooterBanner, prepareInterstitial, showInterstitialAd } from '@/lib/admob-service';
 import { Button } from '@/components/ui/button';
 import SudokuGrid from './SudokuGrid';
 import NumberPad from './NumberPad';
@@ -96,27 +97,61 @@ const GameScreen: React.FC = () => {
     };
   }, []);
 
+  // --- AdMob: Footer banner ad ---
+  // Show footer banner when game screen is active, hide on unmount
+  useEffect(() => {
+    showFooterBanner();
+    return () => {
+      hideFooterBanner();
+    };
+  }, []);
+
+  // --- AdMob: Prepare interstitial for later display ---
+  useEffect(() => {
+    prepareInterstitial();
+  }, []);
+
+  // --- AdMob: Show interstitial ad after puzzle completion or game over ---
+  const adsShownRef = useRef(false);
+  useEffect(() => {
+    if ((isComplete || isGameOver) && !adsShownRef.current && !isPaused) {
+      adsShownRef.current = true;
+      // Hide banner before showing interstitial for better UX
+      hideFooterBanner();
+      // Small delay so the completion dialog appears first
+      const timer = setTimeout(() => {
+        showInterstitialAd().then(() => {
+          // Re-show banner after interstitial is dismissed
+          showFooterBanner();
+        });
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isComplete, isGameOver, isPaused]);
+
   // Auto-save on timer tick (every 5 seconds)
   const lastSaveRef = useRef(0);
   useEffect(() => {
-    if (!isRunning || !board || board.length === 0) return;
-    if (timer > 0 && timer % 5 === 0 && timer !== lastSaveRef.current) {
-      lastSaveRef.current = timer;
-      saveGame({
-        board: JSON.stringify(board),
-        difficulty,
-        timer,
-        mistakes,
-        hintsUsed,
-        score,
-        notesMode,
-        undoStack: JSON.stringify(undoStack),
-        isDaily: isDailyGame,
-        dailyDate,
-        savedAt: new Date().toISOString(),
-      });
-    }
-  }, [timer, isRunning, board, difficulty, mistakes, hintsUsed, score, notesMode, undoStack, isDailyGame, dailyDate]);
+    if (!isRunning || timer <= 0) return;
+    if (timer % 5 !== 0 || timer === lastSaveRef.current) return;
+    lastSaveRef.current = timer;
+    // Read current state directly from store to avoid dependency on rapidly-changing values
+    const state = useSudokuStore.getState();
+    if (!state.board || state.board.length === 0) return;
+    saveGame({
+      board: JSON.stringify(state.board),
+      difficulty: state.difficulty,
+      timer: state.timer,
+      mistakes: state.mistakes,
+      hintsUsed: state.hintsUsed,
+      score: state.score,
+      notesMode: state.notesMode,
+      undoStack: JSON.stringify(state.undoStack),
+      isDaily: state.isDaily,
+      dailyDate: state.dailyDate,
+      savedAt: new Date().toISOString(),
+    });
+  }, [timer, isRunning]);
 
   // Save game state when page goes to background
   useEffect(() => {

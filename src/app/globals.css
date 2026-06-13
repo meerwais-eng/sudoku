@@ -119,6 +119,68 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Mobile touch performance: eliminate 300ms tap delay and prevent
+     double-tap zoom on interactive elements. Also disable text selection
+     on game UI elements to prevent accidental selection lag. */
+  button,
+  [role="button"],
+  .sudoku-cell,
+  .btn-3d,
+  .btn-3d-num {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Prevent callout/context menu on long-press for game cells */
+  /* Mobile touch performance — eliminate 300ms tap delay and prevent
+   text-selection / callout popups during gameplay */
+.sudoku-grid-3d,
+.sudoku-cell,
+.sudoku-cell *,
+button,
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sudoku-cell {
+    -webkit-touch-callout: none;
+  }
+  /* Force content visibility for SudokuGrid cells — this tells the browser
+     to skip off-screen layout/paint for cells outside the viewport, which
+     dramatically reduces first-touch response time on mobile. */
+  .sudoku-grid-3d {
+    content-visibility: auto;
+    contain-intrinsic-size: 500px;
+  }
+}
+
+/* ========== EXIT DIALOG ANIMATIONS ========== */
+/* WebView-safe keyframes for the exit confirmation dialog.
+   These replace tw-animate-css's animate-in/fade-in/zoom-in-95 classes
+   which can fail on older Android WebViews due to --tw-enter-opacity:0. */
+
+@keyframes exitOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes exitDialogZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* ========== ENHANCED GLASSMORPHIC STYLES ========== */
@@ -302,9 +364,10 @@
     0 0px 1px rgba(0, 0, 0, 0.06);
 }
 
-/* Recessed/engraved grid cell - deeper inset for more 3D depth */
+/* Recessed/engraved grid cell - deeper inset for more 3D depth.
+   Transition reduced to background-color only for instant mobile response. */
 .cell-3d {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.1s ease;
   box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.1),
     inset 0 -2px 2px rgba(255, 255, 255, 0.04),
@@ -806,13 +869,16 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* Base cell: deep engraved feel */
+/* Base cell: deep engraved feel — optimized transitions for instant mobile response.
+   Only transition background-color (cheapest paint); transform & box-shadow update
+   immediately without animation to eliminate perceived tap lag on mobile. */
 .sudoku-cell {
   box-shadow:
     inset 0 1px 3px rgba(0, 0, 0, 0.08),
     inset 0 -1px 1px rgba(255, 255, 255, 0.04),
     inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-  transition: all 0.15s ease;
+  transition: background-color 0.1s ease;
+  will-change: background-color;
 }
 
 :root .sudoku-cell {
@@ -1247,4 +1313,20 @@ html, body {
     min-height: 24px;
     min-width: 24px;
   }
+}
+
+/* ================================================================
+   TOUCH PERFORMANCE OPTIMIZATION
+   Prevent the 300ms tap delay on mobile browsers / WebViews.
+   touch-action: manipulation tells the browser to suppress
+   double-tap-to-zoom and tap-highlights on the entire page,
+   delivering instant pointer events.
+
+   Combined with onPointerDown (used in SudokuGrid cells) which
+   fires immediately on touch — bypassing the click event's ~300ms
+   delay — this ensures instant visual feedback on every cell tap.
+   ================================================================ */
+html {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }

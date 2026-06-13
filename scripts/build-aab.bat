@@ -58,7 +58,7 @@ echo.
 :: =====================================================
 :: Step 1: Install npm dependencies
 :: =====================================================
-echo [1/6] Installing npm dependencies...
+echo [1/5] Installing npm dependencies...
 call npm install
 if %errorlevel% neq 0 (
     echo ERROR: npm install failed.
@@ -68,12 +68,12 @@ if %errorlevel% neq 0 (
 echo.
 
 :: =====================================================
-:: Step 2: Build Next.js static export
+:: Step 2: Build Next.js static export + Capacitor sync
 :: =====================================================
-echo [2/6] Building Next.js static export (BUILD_TARGET=android)...
+echo [2/5] Building Next.js static export (BUILD_TARGET=android) + Capacitor sync...
 call npm run build:android
 if %errorlevel% neq 0 (
-    echo ERROR: Next.js build failed.
+    echo ERROR: Next.js build + Capacitor sync failed.
     pause
     exit /b 1
 )
@@ -82,7 +82,7 @@ echo.
 :: =====================================================
 :: Step 3: Generate Android mipmap icons
 :: =====================================================
-echo [3/6] Generating Android mipmap icons from logo.svg...
+echo [3/5] Generating Android mipmap icons from logo.svg...
 call node scripts\generate-android-icons.mjs
 if %errorlevel% neq 0 (
     echo ERROR: Failed to generate Android icons.
@@ -92,21 +92,9 @@ if %errorlevel% neq 0 (
 echo.
 
 :: =====================================================
-:: Step 4: Sync Capacitor (copy web assets + plugins)
+:: Step 4: Clean Gradle cache
 :: =====================================================
-echo [4/6] Syncing Capacitor (copy web assets + plugins)...
-call npx cap sync android
-if %errorlevel% neq 0 (
-    echo ERROR: Capacitor sync failed.
-    pause
-    exit /b 1
-)
-echo.
-
-:: =====================================================
-:: Step 5: Clean Gradle cache
-:: =====================================================
-echo [5/6] Cleaning Gradle build cache...
+echo [4/5] Cleaning Gradle build cache...
 cd android
 call gradlew.bat clean
 if %errorlevel% neq 0 (
@@ -116,9 +104,9 @@ cd ..
 echo.
 
 :: =====================================================
-:: Step 6: Build the signed AAB (Android App Bundle)
+:: Step 5: Build the signed AAB (Android App Bundle)
 :: =====================================================
-echo [6/6] Building signed Android App Bundle (AAB)...
+echo [5/5] Building signed Android App Bundle (AAB)...
 cd android
 call gradlew.bat bundleRelease
 if %errorlevel% neq 0 (

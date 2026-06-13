@@ -11,8 +11,9 @@
     "export:pages": "npm run build:pages && npx serve out",
     "generate:icons": "node scripts/generate-pwa-icons.mjs",
     "generate:android-icons": "node scripts/generate-android-icons.mjs",
-    "generate:keystore": "scripts\\generate-keystore.bat",
-    "build:aab": "scripts\\build-aab.bat",
+    "generate:keystore": "node scripts/generate-keystore.js",
+    "build:aab": "node -e \"const{execSync}=require('child_process');const cmd=process.platform==='win32'?'scripts\\\\build-aab.bat':'bash scripts/build-aab.sh';execSync(cmd,{stdio:'inherit',cwd:process.cwd()})\"",
+    "build:apk": "node -e \"const{execSync}=require('child_process');const cmd=process.platform==='win32'?'scripts\\\\build-apk.bat':'bash scripts/build-apk.sh';execSync(cmd,{stdio:'inherit',cwd:process.cwd()})\"",
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",
     "cap:copy": "npx cap copy android",
@@ -20,6 +21,7 @@
     "preview": "npx serve out"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
     "@capacitor/android": "^8.3.4",
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",

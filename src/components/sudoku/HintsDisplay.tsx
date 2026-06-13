@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSudokuStore } from '@/lib/sudoku-store';
 import { canClaimDailyHint, canWatchAdForHint } from '@/lib/sudoku-storage';
+import { showRewardAd, prepareRewardAd, isNativePlatform } from '@/lib/admob-service';
 import { Lightbulb, Tv } from 'lucide-react';
 
 interface HintsDisplayProps {
@@ -63,13 +64,38 @@ const HintsDisplay: React.FC<HintsDisplayProps> = ({ compact = false, showAdButt
     };
   }, [isWatchingAd, adCountdown, earnHintFromAd]);
 
-  const handleWatchAd = useCallback(() => {
-    setAdCountdown(5);
-    setIsWatchingAd(true);
-    setShowAdSuccess(false);
+  const adProgress = ((5 - adCountdown) / 5) * 100;
+
+  // Pre-warm reward ad for native
+  useEffect(() => {
+    if (isNativePlatform()) {
+      prepareRewardAd();
+    }
   }, []);
 
-  const adProgress = ((5 - adCountdown) / 5) * 100;
+  const handleWatchAd = useCallback(async () => {
+    if (isNativePlatform()) {
+      // Native Android: use real AdMob rewarded ad
+      const shown = await showRewardAd(() => {
+        earnHintFromAd();
+        setShowAdSuccess(true);
+        setTimeout(() => {
+          setShowAdSuccess(false);
+        }, 2000);
+      });
+
+      if (!shown) {
+        // Fallback: if ad wasn't ready, try to prepare and show notification
+        console.warn('[HintsDisplay] Reward ad not ready, preparing...');
+        prepareRewardAd();
+      }
+    } else {
+      // Web/PWA: use simulated ad (no real AdMob on web)
+      setAdCountdown(5);
+      setIsWatchingAd(true);
+      setShowAdSuccess(false);
+    }
+  }, [earnHintFromAd]);
 
   return (
     <>
@@ -141,8 +167,20 @@ const HintsDisplay: React.FC<HintsDisplayProps> = ({ compact = false, showAdButt
         )}
       </div>
 
-      {/* Simulated Ad Overlay for earning hint */}
-      {isWatchingAd && (
+      {/* Ad success notification (for native rewarded ad) */}
+      {showAdSuccess && isNativePlatform() && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
+          <div className="glass-card rounded-xl px-4 py-3 border border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.3)] flex items-center gap-2">
+            <span className="text-2xl">💡</span>
+            <span className="text-sm font-semibold text-purple-300">
+              +1 Hint Earned!
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Simulated Ad Overlay for earning hint (web/PWA only) */}
+      {isWatchingAd && !isNativePlatform() && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/90"

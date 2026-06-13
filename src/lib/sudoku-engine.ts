@@ -248,7 +248,7 @@ export function findConflicts(board: BoardState, row: number, col: number, value
   return conflicts;
 }
 
-/** Update all error flags on the board */
+/** Update all error flags on the board (returns a new cloned board) */
 export function updateErrors(board: BoardState): BoardState {
   const newBoard = cloneBoard(board);
 
@@ -272,6 +272,74 @@ export function updateErrors(board: BoardState): BoardState {
   }
 
   return newBoard;
+}
+
+/** Update all error flags on the board in-place (no clone — use when board is already a fresh clone) */
+export function updateErrorsMutate(board: BoardState): void {
+  // Reset all errors
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      board[r][c].isError = false;
+    }
+  }
+
+  // Mark conflicts
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      if (board[r][c].value !== 0) {
+        const conflicts = findConflicts(board, r, c, board[r][c].value);
+        if (conflicts.length > 0) {
+          board[r][c].isError = true;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Incrementally update error flags for cells related to a change at (row, col).
+ * Only clears and re-checks errors for cells in the same row, column, and 3×3 box.
+ * Mutates the board in-place — use when board is already a fresh clone.
+ * This is O(~21) instead of O(81) for a full scan.
+ */
+export function updateErrorsIncremental(board: BoardState, row: number, col: number): void {
+  // Collect the set of unique cells that need re-checking:
+  // same row, same column, same 3×3 box
+  const cellsToCheck = new Set<string>();
+
+  // Same row
+  for (let c = 0; c < 9; c++) {
+    cellsToCheck.add(`${row},${c}`);
+  }
+  // Same column
+  for (let r = 0; r < 9; r++) {
+    cellsToCheck.add(`${r},${col}`);
+  }
+  // Same 3×3 box
+  const boxRow = Math.floor(row / 3) * 3;
+  const boxCol = Math.floor(col / 3) * 3;
+  for (let r = boxRow; r < boxRow + 3; r++) {
+    for (let c = boxCol; c < boxCol + 3; c++) {
+      cellsToCheck.add(`${r},${c}`);
+    }
+  }
+
+  // Clear error flags for affected cells
+  for (const key of cellsToCheck) {
+    const [r, c] = key.split(',').map(Number);
+    board[r][c].isError = false;
+  }
+
+  // Re-check conflicts for affected cells
+  for (const key of cellsToCheck) {
+    const [r, c] = key.split(',').map(Number);
+    if (board[r][c].value !== 0) {
+      const conflicts = findConflicts(board, r, c, board[r][c].value);
+      if (conflicts.length > 0) {
+        board[r][c].isError = true;
+      }
+    }
+  }
 }
 
 /** Check if the puzzle is completely and correctly solved */

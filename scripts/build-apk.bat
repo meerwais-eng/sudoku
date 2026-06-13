@@ -58,7 +58,7 @@ echo.
 :: =====================================================
 :: Step 1: Install npm dependencies
 :: =====================================================
-echo [1/6] Installing npm dependencies...
+echo [1/5] Installing npm dependencies...
 call npm install
 if %errorlevel% neq 0 (
     echo ERROR: npm install failed.
@@ -70,7 +70,7 @@ echo.
 :: =====================================================
 :: Step 2: Build Next.js static export + Capacitor sync
 :: =====================================================
-echo [2/6] Building Next.js static export (BUILD_TARGET=android) and syncing...
+echo [2/5] Building Next.js static export (BUILD_TARGET=android) + Capacitor sync...
 call npm run build:android
 if %errorlevel% neq 0 (
     echo ERROR: Next.js build + Capacitor sync failed.
@@ -82,7 +82,7 @@ echo.
 :: =====================================================
 :: Step 3: Generate Android mipmap icons
 :: =====================================================
-echo [3/6] Generating Android mipmap icons from logo.svg...
+echo [3/5] Generating Android mipmap icons from logo.svg...
 call node scripts\generate-android-icons.mjs
 if %errorlevel% neq 0 (
     echo ERROR: Failed to generate Android icons.
@@ -94,7 +94,7 @@ echo.
 :: =====================================================
 :: Step 4: Clean Gradle cache
 :: =====================================================
-echo [4/6] Cleaning Gradle build cache...
+echo [4/5] Cleaning Gradle build cache...
 cd android
 call gradlew.bat clean
 if %errorlevel% neq 0 (
@@ -106,7 +106,7 @@ echo.
 :: =====================================================
 :: Step 5: Build the signed APK
 :: =====================================================
-echo [5/6] Building signed Android APK...
+echo [5/5] Building signed Android APK...
 cd android
 call gradlew.bat assembleRelease
 if %errorlevel% neq 0 (
@@ -122,13 +122,6 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 cd ..
-
-echo.
-
-:: =====================================================
-:: Step 6: Verify output
-:: =====================================================
-echo [6/6] Verifying output...
 
 echo.
 echo ============================================
